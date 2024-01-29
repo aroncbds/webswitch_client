@@ -74,11 +74,9 @@ namespace WebSwitchClient.DataLayer
             {
                 PrepareHeaders(client);
 
-                // Make a GET request to the endpoint
                 HttpResponseMessage response = await client.GetAsync(this.BaseURI + $"temperature/get2/{sensorIndex}");
                 if (response.IsSuccessStatusCode)
                 {
-                    // Successfully connected, handle the response here
                     string responseBody = await response.Content.ReadAsStringAsync();
 
                     // Check if the operation was canceled
@@ -116,7 +114,6 @@ namespace WebSwitchClient.DataLayer
             {
                 PrepareHeaders(client);
 
-                // Make a GET request to the endpoint
                 HttpResponseMessage response = await client.GetAsync(this.BaseURI + $"temperature/get2/{sensorName}");
 
                 // Check if the operation was canceled
@@ -124,7 +121,6 @@ namespace WebSwitchClient.DataLayer
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Successfully connected, handle the response here
                     string responseBody = await response.Content.ReadAsStringAsync();
                     if (responseBody == TEMPERATURE_SENSOR_NOT_FOUND_VALUE)
                     {
@@ -158,7 +154,6 @@ namespace WebSwitchClient.DataLayer
             {
                 PrepareHeaders(client);
 
-                // Make a GET request to the endpoint
                 HttpResponseMessage response = await client.GetAsync(this.BaseURI + $"temperature/get2/{indexSegment}");
 
                 // Check if the operation was canceled
