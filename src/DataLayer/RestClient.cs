@@ -154,10 +154,6 @@ namespace WebSwitchClient.DataLayer
         {
             string indexSegment = string.Join('$', indices.ToArray());
 
-            //var url = GetSensorTypeUrl();
-
-            TemperatureSensorCollection result = new();
-
             using (var client = new HttpClient())
             {
                 PrepareHeaders(client);
@@ -167,10 +163,10 @@ namespace WebSwitchClient.DataLayer
 
                 // Check if the operation was canceled
                 cancellationToken.ThrowIfCancellationRequested();
+                TemperatureSensorCollection result = new();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Successfully connected, handle the response here
                     string responseBody = await response.Content.ReadAsStringAsync();
                     var splitResult = responseBody.Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
