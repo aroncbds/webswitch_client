@@ -45,7 +45,6 @@ namespace WebSwitchClient.DataLayer
             _auheneticationNeeded = false;
         }
 
-        #region 1-Wire
         private void PrepareHeaders(HttpClient client)
         {
             if (!_auheneticationNeeded)
@@ -53,13 +52,12 @@ namespace WebSwitchClient.DataLayer
 
             client.BaseAddress = new Uri(this.BaseURI);
             client.DefaultRequestHeaders.Accept.Clear();
-            //client.DefaultRequestHeaders.Add("Authorization", "Basic " + this.Password);
-            // Set up basic authentication
             var byteArray = Encoding.ASCII.GetBytes($"{this.Username}:{this.Password}");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
         }
 
+        #region 1-Wire
         /// <summary>
         /// Return temperature by sensor index. http://[webswitch address]/temperature/get2/{sensorIndex}
         /// </summary>
@@ -201,10 +199,78 @@ namespace WebSwitchClient.DataLayer
         #endregion
 
         #region Relays
-        public async Task<bool> SetRelay(bool isOn)
+        /// <summary>
+        /// http://wsm.homenet.local/relaycontrol/on/2
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="TemperatureSensorNotFoundException"></exception>
+        /// <exception cref="TemperatureParseException"></exception>
+        /// <exception cref="TemperatureSensorStatusCodeException"></exception>
+        public async Task<bool> SetRelay(int relayIndex, bool state, CancellationToken cancellationToken = default)
         {
-            // http://192.168.2.18/relaycontrol/on/2
-            return false;
+            if (relayIndex < 1 || relayIndex > 5)
+                throw new ArgumentOutOfRangeException("Relay index must be between 1 and 5");
+
+            using (var client = new HttpClient())
+            {
+                PrepareHeaders(client);
+
+                HttpResponseMessage response = await client.GetAsync(this.BaseURI + $"relaycontrol/{(state ? "on" : "off")}/{relayIndex}");
+
+                // Check if the operation was canceled
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    if (responseBody != "|000|OK|1|")
+                        throw new TemperatureSensorStatusCodeException($"Got unexpected status code \"{responseBody}\"");
+
+                    return true;
+                }
+                else
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        throw new UnauthorizedAccessException("Authorization needed for endpoint. Please provide a valid username and password for Basic Authorization!");
+                    else
+                        throw new TemperatureSensorStatusCodeException($"Got unexpected status code \"{response.StatusCode}\"");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Return the state of the relay with the given index. http://wsm.homenet.local/relaystate/get/RELAY_INDEX
+        /// </summary>
+        /// <param name="relayIndex"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<bool> GetRelayState(int relayIndex, CancellationToken cancellationToken = default)
+        {
+            if (relayIndex < 1 || relayIndex > 5)
+                throw new ArgumentOutOfRangeException("Relay index must be between 1 and 5");
+
+            using (var client = new HttpClient())
+            {
+                PrepareHeaders(client);
+
+                HttpResponseMessage response = await client.GetAsync(this.BaseURI + $"relaystate/get/{relayIndex}");
+
+                // Check if the operation was canceled
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    string[] elements = responseBody.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    return elements[elements.Length - 1] == "1";
+                }
+                else
+                {
+                    throw new TemperatureSensorStatusCodeException($"Got unexpected status code \"{response.StatusCode}\"");
+                }
+            }
         }
 
         /// <summary>
@@ -233,11 +299,6 @@ namespace WebSwitchClient.DataLayer
             return false;
         }
 
-        public async Task<bool> GetRelayState(int relayIndex)
-        {
-            // http://192.168.2.18/relaystate/get/4
-            return false;
-        }
         #endregion
 
         #region Helpers
