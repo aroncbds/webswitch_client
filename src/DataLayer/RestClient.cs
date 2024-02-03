@@ -225,7 +225,7 @@ namespace WebSwitchClient.DataLayer
                 if (response.IsSuccessStatusCode)
                 {
                     string responseBody = await response.Content.ReadAsStringAsync();
-                    if (responseBody != "|000|OK|1|")
+                    if (state && responseBody != "|000|OK|1|" || !state && responseBody != "|000|OK|0|")
                         throw new TemperatureSensorStatusCodeException($"Got unexpected status code \"{responseBody}\"");
 
                     return true;
